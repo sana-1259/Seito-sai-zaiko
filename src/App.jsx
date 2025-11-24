@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 
 // --- Firebase Configuration (Preview Environment Use) ---
-//const firebaseConfig = {
+const firebaseConfig = {
   apiKey: "AIzaSyBubnXDneanD4ZJo2zgHONe5fhdlXkQjq4",
   authDomain: "seito-sai-zaiko.firebaseapp.com",
   projectId: "seito-sai-zaiko",
@@ -32,7 +32,7 @@ import {
   messagingSenderId: "309227012246",
   appId: "1:309227012246:web:35b59a9e1cb924631082b7",
   measurementId: "G-NMBV8MYP90"
-};
+}
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
