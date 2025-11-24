@@ -33,6 +33,8 @@ const firebaseConfig = {
   appId: "1:309227012246:web:35b59a9e1cb924631082b7",
   measurementId: "G-NMBV8MYP90"
 }
+// 【Vercel環境では、__app_idが使えないため、代わりにprojectIdをApp IDとして使用】
+const appId = firebaseConfig.projectId; 
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
