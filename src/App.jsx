@@ -23,7 +23,8 @@ import {
   Share2
 } from 'lucide-react';
 
-// --- Firebase Configuration (Preview Environment Use) ---
+// --- Firebase Configuration ---
+// ここで firebaseConfig オブジェクトが正しく定義されます
 const firebaseConfig = {
   apiKey: "AIzaSyBubnXDneanD4ZJo2zgHONe5fhdlXkQjq4",
   authDomain: "seito-sai-zaiko.firebaseapp.com",
@@ -32,9 +33,10 @@ const firebaseConfig = {
   messagingSenderId: "309227012246",
   appId: "1:309227012246:web:35b59a9e1cb924631082b7",
   measurementId: "G-NMBV8MYP90"
-}
-// 【Vercel環境では、__app_idが使えないため、代わりにprojectIdをApp IDとして使用】
-const appId = firebaseConfig.projectId; 
+};
+
+// Vercel環境では、__app_idの代わりにprojectIdをIDとして利用します
+const appId = firebaseConfig.projectId;
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -100,16 +102,10 @@ export default function App() {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          // トークンがない場合は匿名ログインにフォールバック
-          await signInAnonymously(auth); 
-        }
+        // 環境変数（__initial_auth_token）がないことを想定し、匿名ログインにフォールバック
+        await signInAnonymously(auth); 
       } catch (e) {
         console.error("Auth Error:", e);
-        // カスタムトークン失敗時は匿名ログインを試みる
-        await signInAnonymously(auth); 
       }
     };
     initAuth();
@@ -123,14 +119,8 @@ export default function App() {
     if (!user) return;
 
     // 環境に応じた Firestore ドキュメントパスを決定
-    let docRef;
-    if (typeof __app_id !== 'undefined') {
-      // チャットプレビュー環境用 (公開データパス)
-      docRef = doc(db, 'artifacts', appId, 'public', 'data', COLLECTION_PATH, DOC_ID);
-    } else {
-      // 外部公開環境用 (標準パス)
-      docRef = doc(db, COLLECTION_PATH, DOC_ID);
-    }
+    // Vercel環境（外部公開）では、アプリIDなしの標準パスを使用
+    const docRef = doc(db, COLLECTION_PATH, DOC_ID);
 
     const unsubscribe = onSnapshot(docRef, (snapshot) => {
       if (snapshot.exists()) {
@@ -142,8 +132,9 @@ export default function App() {
           setData(fetchedData);
         }
       } else {
-        // データが存在しない場合は初期データをセット
+        // データが存在しない場合は初期データをセットして保存（初回起動時）
         setData(INITIAL_DATA);
+        setDoc(docRef, INITIAL_DATA).catch(e => console.error("Initial Data Save Error:", e));
       }
       setLoading(false);
     }, (error) => {
@@ -185,33 +176,24 @@ export default function App() {
 
   const handleLogout = () => {
     setIsAdmin(false);
-    // 確認ダイアログの代わりにカスタムモーダルを使うべきですが、今回はブラウザのconfirmで代用します
-    if (!confirm("編集モードを終了しますか？")) return;
+    // カスタムモーダルを使う代わりにログに出力
+    console.warn("編集モードを終了しました。");
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleShare = () => {
     // URLをクリップボードにコピー
-    navigator.clipboard.writeText(window.location.href).then(() => {
-      setCopyMsg("リンクをコピーしました！");
-      setTimeout(() => setCopyMsg(""), 3000);
-    }).catch(err => {
-      console.error('Copy failed:', err);
-      setCopyMsg("コピーに失敗しました");
-      setTimeout(() => setCopyMsg(""), 3000);
-    });
+    document.execCommand('copy', false, window.location.href);
+    setCopyMsg("リンクをコピーしました！");
+    setTimeout(() => setCopyMsg(""), 3000);
   };
 
   // --- Update Handlers ---
   const saveData = async (newData) => {
     if (!user) return; // 認証されていなければ保存しない
     try {
-      let docRef;
-      if (typeof __app_id !== 'undefined') {
-        docRef = doc(db, 'artifacts', appId, 'public', 'data', COLLECTION_PATH, DOC_ID);
-      } else {
-        docRef = doc(db, COLLECTION_PATH, DOC_ID);
-      }
+      // Vercel環境（外部公開）では、アプリIDなしの標準パスを使用
+      const docRef = doc(db, COLLECTION_PATH, DOC_ID);
       await setDoc(docRef, newData);
     } catch (e) {
       console.error("Save Error:", e);
@@ -242,7 +224,7 @@ export default function App() {
     saveData(newData);
   };
   const deleteRow = (sIdx, rIdx) => {
-    if (!confirm("削除しますか？")) return;
+    if (!window.confirm("この行を削除しますか？")) return;
     const newData = { ...data };
     newData.sections[sIdx].rows.splice(rIdx, 1);
     setData(newData);
@@ -256,7 +238,7 @@ export default function App() {
     saveData(newData);
   };
   const deleteSection = (idx) => {
-    if (!confirm("セクションごと削除しますか？")) return;
+    if (!window.confirm("セクションごと削除しますか？")) return;
     if (!data) return;
     const newData = { ...data };
     newData.sections.splice(idx, 1);
